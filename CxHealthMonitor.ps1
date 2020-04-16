@@ -320,13 +320,17 @@ Class SlackAlertSystem : AlertSystem {
     hidden [String] $systemType
     hidden [String] $name
     hidden [String] $hook
+    hidden [String] $proxy
+    hidden [String] $proxyCreds
 
     # Constructs the email alert system object
-    SlackAlertSystem ([String] $systemType, [String] $name, [String] $hook) {
+    SlackAlertSystem ([String] $systemType, [String] $name, [String] $hook, [String] $proxy, [String] $proxyCreds) {
         $this.io = [IO]::new()
         $this.systemType = $systemType
         $this.name = $name
         $this.hook = $hook
+        $this.proxy = $proxy
+        $this.proxyCreds = $proxyCreds
     }
 
     # Sends a Slack with message
@@ -339,7 +343,21 @@ Class SlackAlertSystem : AlertSystem {
             # message has to be in json format so Slack can parse it
             $body = '{"text":"' + $message + '"}'
 
-            Invoke-RestMethod -Uri $this.hook -Method Post -Body $body -ContentType 'application/json'
+            # set parameters to send REST to Slack
+            $Params = @{}
+            $Params.Add('Uri', $this.hook)
+            $Params.Add('Method', 'Post')
+            $Params.Add('ContentType', 'application/json')
+            $Params.Add('Body', $body)
+
+            if($this.proxy) {
+                $Params['Proxy'] = $this.proxy
+            }
+            if ($this.proxyCreds) {
+                $Params['ProxyCredential'] = $this.proxyCreds
+            }
+
+            Invoke-RestMethod @Params
         }
         catch {
             $this.io.Log("ERROR: [$($_.Exception.Message)] Could not send slack alert. Verify slack configuration.")
@@ -413,7 +431,7 @@ Class AlertService {
             # Register slack, if configured
             if ($alertingSystem.slack) {
                 foreach ($slackSystem in $alertingSystem.slack) {
-                    [AlertSystem] $slackAlertSystem = [SlackAlertSystem]::new($slackSystem.systemType, $slackSystem.name, $slackSystem.hook)
+                    [AlertSystem] $slackAlertSystem = [SlackAlertSystem]::new($slackSystem.systemType, $slackSystem.name, $slackSystem.hook, $slackSystem.proxy, $slackSystem.proxyCreds)
                     $this.AddAlertSystem($slackAlertSystem);
                 }
             }

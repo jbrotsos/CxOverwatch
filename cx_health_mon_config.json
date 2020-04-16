@@ -60,7 +60,9 @@
             {
                 "systemType": "slack",
                 "name": "Slack",
-                "hook" : "https://hooks.slack.com/services/xxxxxxxxxxxxxxxxxxx"
+                "hook" : "https://hooks.slack.com/services/xxxxxxxxxxxxxxxxxxx",
+		"proxy" : "",
+		"proxyCreds": ""
             }
         ]
     },
